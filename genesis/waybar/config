@@ -1,0 +1,98 @@
+{
+    "height": 30, // Waybar height (to be removed for auto height)
+    "layer": "top", // Waybar at top layer
+    "margin-top": 12,
+    "margin-left": 20,
+    "margin-bottom": 0,
+    "margin-right": 5,
+    "spacing": 10, // Gaps between modules (4px)
+
+    "modules-left": ["custom/launcher", "cpu", "memory", "hyprland/workspaces", "custom/weather"],
+    "modules-center": ["custom/spotify"],
+    "modules-right": ["tray", "pulseaudio", "network", "clock", "custom/power-menu"],
+    "hyprland/workspaces": {
+        "format": "{icon}",
+        "on-click": "activate",
+        "format-icons": {
+        "1": "",
+        "2": "",
+        "3": "",
+        "4": "",
+        "5": "",
+        "urgent": "",
+        "active": "",
+        "default": ""
+        }
+    },
+    "hyprland/window": {
+        "format": "{}"
+    },
+    "tray": {
+        "spacing": 20
+    },
+    "clock": {
+        "format": "<span color='#bf616a'>\uf073  </span>{:%a %b %d}",
+        "format-alt": "<span color='#bf616a'>   </span>{:%I:%M %p}",
+        "tooltip-format": "<big>{:%B %Y}</big>\n<tt><small>{calendar}</small></tt>",
+    },
+
+    "cpu": {
+        "interval": 10,
+        "format": "\uf4bc  {}%",
+        "max-length": 10,
+        "on-click": ""
+    },
+    "memory": {
+        "interval": 30,
+        "format": "\uf1c0  {}%",
+        "format-alt":"  {used:0.1f}G",
+        "max-length": 10
+    },
+    "network": {
+        "format-wifi": "\uf1eb   {signalStrength}%",
+        "format-ethernet": "\uf0201 wired",
+        "format-disconnected": "\uf0202",
+        "on-click": "bash ~/.config/waybar/scripts/rofi-wifi-menu.sh",
+        "format-disconnected": "Disconnected  "
+    },
+
+    "pulseaudio": {
+        "format": "{icon}   {volume}%",
+        "format-muted": "\uf466",
+        "format-icons": {
+            "headphone": "",
+            "hands-free": "\uf0d26",
+            "headset": "\uee59",
+            "phone": "",
+            "portable": "",
+            "car": "",
+            "default": ["", "", ""]
+        },
+        "on-click": "pavucontrol"
+    },
+    "custom/weather": {
+        "format": "{} °",
+        "tooltip": true,
+        "interval": 3600,
+        "exec": "wttrbar --location Athens --hide-conditions",
+        "return-type": "json"
+    },   
+
+    "custom/spotify": {
+    "exec": "python3 ~/.config/waybar/scripts/mediaplayer.py --player spotify",
+    "format": "{}  ",
+    "return-type": "json",
+    "on-click": "playerctl play-pause",
+    "on-double-click-right": "playerctl next",
+    "on-scroll-down": "playerctl previous"
+    },
+    "custom/power-menu": {
+        "format": "<span color='#6a92d7'>\u23fb </span>",
+        "on-click": "wlogout"
+    }, 
+    "custom/launcher": {
+        "format": "<span color='#6a92d7'>\uf14de</span>",
+        "on-click": "wofi --show drun"
+    }
+}
+
