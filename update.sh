@@ -64,16 +64,27 @@ echo ""
 directory="$1"
 
 declare -A confPaths=(
-	["hypr"]=~/.config/hypr ["kitty"]=~/.config/kitty ["nvim"]=~/.config/nvim ["waybar"]=~/.config/waybar
+	["hypr"]=~/.config/hypr ["kitty"]=~/.config/kitty ["nvim"]=~/.config/nvim ["waybar"]=~/.config/waybar [".bashrc"]=~/.bashrc [".zshrc"]=~/.zshrc
 )
 
 function transferConfigs() {
 	
 	if test -d $directory; then
-		for config in "${!confPaths[@]}"; do 
-			color_text "$config" "Green"
-			echo ""
-			cp -r "${confPaths[$config]}" "$directory/$config"
+
+		for config in "${!confPaths[@]}"; do
+      
+      if [ -f ${confPaths[$config]} ]; then
+  			color_text "$config" "BGreen"
+	 		echo ""
+		 	cp -r "${confPaths[$config]}" "$directory/$config"
+      elif [ -d ${confPaths[$config]} ]; then
+        color_text "$config" "UGreen"
+        echo ""
+        cp -r "${confPaths[$config]}" "$directory/$config"
+      else
+        color_text "$config" "Red"
+        echo ""
+      fi
 		done
 	fi 
 }
@@ -104,22 +115,28 @@ transferConfigs
 
 
 
+function gitAddCommitPush() {
+
+  local answer=""
+  echo -e "\n"
+  color_text "Want to commit and push on git repo?[y/N] " "BCyan"
+
+  read answer
+
+  if [[ $answer =~ "y" ]]; then
+    git add .
+    git commit -m "updated configs"
+    git push origin master
+
+    echo -e "\n"
+
+  else
+    color_text "OK. Finished." "Red"
+  fi
+}
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+gitAddCommitPush
 
 
 
