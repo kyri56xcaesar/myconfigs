@@ -10,7 +10,8 @@ export ZSH="$HOME/.oh-my-zsh"
 # load a random theme each time Oh My Zsh is loaded, in which case,
 # to know which specific one was loaded, run: echo $RANDOM_THEME
 # See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
-ZSH_THEME="af-magic"
+#ZSH_THEME="af-magic"
+ZSH_THEME="bureau"
 
 # Set list of themes to pick from when loading at random
 # Setting this variable when ZSH_THEME=random will cause zsh to load
@@ -117,7 +118,6 @@ alias cls='clear; neofetch'
 alias sl='clear; ls'
 alias ll='ls -la'
 alias lah='ls -lah'
-alias l='ls'
 alias btc='brightnessctl'
 alias ls='ls --color=auto'
 alias grep='grep --color=auto'
