@@ -136,23 +136,25 @@ transferConfigs
 
 function gitAddCommitPush() {
 
-  local answer=""
-  echo -e "\n"
-  color_text "Want to commit and push on git repo?[y/N] " "BCyan"
+  	local answer=""
+  	echo -e "\n"
+  	color_text "Want to commit and push on git repo?[y/N] " "BCyan"
 
-  read answer
+  	read answer
 
-  if [[ $answer =~ "y" ]]; then
-    git add .
-    git commit -m "updated configs"
-    git push origin master
+	if [[ $answer =~ "y" ]]; then
+		
 
-    echo -e "\n"
+    	git add "$directory"/
+		git add "./update.sh"
+   	git commit -m "updated configs"
+    	git push origin master
+    	echo -e "\n"
+  	else
+    	color_text "OK. Finished." "Red"
+	 	echo ""
+  	fi
 
-  else
-    color_text "OK. Finished." "Red"
-	 echo ""
-  fi
 }
 
 
