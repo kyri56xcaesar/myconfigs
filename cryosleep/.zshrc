@@ -106,8 +106,8 @@ source $ZSH/oh-my-zsh.sh
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 # might delete, minikube kubectl
-alias kubectl='minikube kubectl'
 
+alias k='kubectl'
 alias h='history'
 alias f='find'
 alias pi='ping'
