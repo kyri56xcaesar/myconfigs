@@ -31,7 +31,7 @@
         "spacing": 20
     },
     "clock": {
-        "format": "<span color='#bf616a'>\uf073  </span>{:%a %b %d}",
+        "format": "<span color='#bf616a'>\uf073  </span>{:%a %b %d %I:%M %p}",
         "format-alt": "<span color='#bf616a'>   </span>{:%I:%M %p}",
         "tooltip-format": "<big>{:%B %Y}</big>\n<tt><small>{calendar}</small></tt>",
     },

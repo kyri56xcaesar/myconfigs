@@ -1,0 +1,6 @@
+hl.on("hyprland.start", function()
+	hl.exec_cmd("waybar & hyprpaper")
+	hl.exec_cmd("hyprnotify & hypridle")
+	hl.exec_cmd("systemctl --user start plasma-polkit-agent")
+	hl.exec_cmd("dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP")
+end)

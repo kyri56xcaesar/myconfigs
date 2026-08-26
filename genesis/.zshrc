@@ -72,7 +72,19 @@ ZSH_THEME="af-magic"
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git colorize archlinux emoji-clock cp web-search zsh-autosuggestions zsh-syntax-highlighting fast-syntax-highlighting zsh-autocomplete)
+plugins=(
+  git 
+  colorize 
+  archlinux 
+  emoji-clock 
+  cp 
+  web-search 
+  zsh-autosuggestions 
+  zsh-syntax-highlighting 
+  fast-syntax-highlighting 
+  zsh-autocomplete
+  docker
+)
 #plugins=(git colorize archlinux emoji-clock cp web-search)
 
 
@@ -106,6 +118,16 @@ source $ZSH/oh-my-zsh.sh
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
+#
+#
+# KEYBINDS
+#
+#
+# Fix Home and End keys
+bindkey "^[[H" beginning-of-line
+bindkey "^[[F" end-of-line
+
+
 alias sl='clear; ls'
 alias n='nvim'
 alias v='vim'
@@ -113,3 +135,4 @@ alias ls='ls --color=auto'
 alias grep='grep --color=auto'
 alias lah='ls -lah'
 alias c='cat'
+alias pi='ping'
