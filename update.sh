@@ -1,166 +1,230 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#
+# Sync dotfiles between this repo and the live system.
+#
+#   ./update.sh              push configs from this system into the repo, commit, push
+#   ./update.sh deploy       write configs from the repo onto this system
+#   ./update.sh list         show host directories tracked in this repo
+#
+# Run with -h for all options.
+set -euo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+cd "$SCRIPT_DIR"
 
-# Regular Colors
-declare -A colors=(
-  ["Black"]='\033[0;30m' ["Red"]='\033[0;31m' ["Green"]='\033[0;32m' ["Yellow"]='\033[0;33m'
-  ["Blue"]='\033[0;34m' ["Purple"]='\033[0;35m' ["Cyan"]='\033[0;36m' ["White"]='\033[0;37m'
-  ["BBlack"]='\033[1;30m' ["BRed"]='\033[1;31m' ["BGreen"]='\033[1;32m' ["BYellow"]='\033[1;33m'
-  ["BBlue"]='\033[1;34m' ["BPurple"]='\033[1;35m' ["BCyan"]='\033[1;36m' ["BWhite"]='\033[1;37m'
-  ["UBlack"]='\033[4;30m' ["URed"]='\033[4;31m' ["UGreen"]='\033[4;32m' ["UYellow"]='\033[4;33m'
-  ["UBlue"]='\033[4;34m' ["UPurple"]='\033[4;35m' ["UCyan"]='\033[4;36m' ["UWhite"]='\033[4;37m'
-  ["On_Black"]='\033[40m' ["On_Red"]='\033[41m' ["On_Green"]='\033[42m' ["On_Yellow"]='\033[43m'
-  ["On_Blue"]='\033[44m' ["On_Purple"]='\033[45m' ["On_Cyan"]='\033[46m' ["On_White"]='\033[47m'
-  ["IBlack"]='\033[0;90m' ["IRed"]='\033[0;91m' ["IGreen"]='\033[0;92m' ["IYellow"]='\033[0;93m'
-  ["IBlue"]='\033[0;94m' ["IPurple"]='\033[0;95m' ["ICyan"]='\033[0;96m' ["IWhite"]='\033[0;97m'
-  ["BIBlack"]='\033[1;90m' ["BIRed"]='\033[1;91m' ["BIGreen"]='\033[1;92m' ["BIYellow"]='\033[1;93m'
-  ["BIBlue"]='\033[1;94m' ["BIPurple"]='\033[1;95m' ["BICyan"]='\033[1;96m' ["BIWhite"]='\033[1;97m'
-  ["On_IBlack"]='\033[0;100m' ["On_IRed"]='\033[0;101m' ["On_IGreen"]='\033[0;102m' ["On_IYellow"]='\033[0;103m'
-  ["On_IBlue"]='\033[0;104m' ["On_IPurple"]='\033[0;105m' ["On_ICyan"]='\033[0;106m' ["On_IWhite"]='\033[0;107m' ["UBBlue"]='\033[1;4;34m'
+# ---------------------------------------------------------------------------
+# What gets tracked. Add an entry here to start syncing another config.
+# ---------------------------------------------------------------------------
+declare -A CONF_PATHS=(
+  [hypr]="$HOME/.config/hypr"
+  [kitty]="$HOME/.config/kitty"
+  [nvim]="$HOME/.config/nvim"
+  [waybar]="$HOME/.config/waybar"
+  [.bashrc]="$HOME/.bashrc"
+  [.zshrc]="$HOME/.zshrc"
 )
 
-color_text() {
-  local text="$1"
-  local color="$2"
-  local Color_Off='\033[0m'
+# ---------------------------------------------------------------------------
+# Output helpers
+# ---------------------------------------------------------------------------
+c_reset='\033[0m'; c_red='\033[0;31m'; c_green='\033[0;32m'
+c_yellow='\033[0;33m'; c_blue='\033[0;34m'; c_bold='\033[1m'
 
-  # Check if the color exists in the colors array
-  if [[ -n "${colors[$color]}" ]]; then
-    echo -en "${colors[$color]}$text${Color_Off}"
+info()  { printf '%b==>%b %s\n' "$c_blue" "$c_reset" "$*"; }
+ok()    { printf '  %b+%b %s\n' "$c_green" "$c_reset" "$*"; }
+skip()  { printf '  %b-%b %s\n' "$c_yellow" "$c_reset" "$*"; }
+err()   { printf '%b✗%b %s\n' "$c_red" "$c_reset" "$*" >&2; }
+
+usage() {
+  cat <<EOF
+Usage: ./update.sh [MODE] [OPTIONS]
+
+Modes:
+  push      (default) copy live system configs into this repo, then commit & push
+  deploy    copy configs from this repo onto the live system
+  list      show host directories tracked in this repo
+
+Options:
+  --host=NAME    use NAME instead of the detected hostname ($(hostname))
+  --only=a,b,c   only sync these configs (default: all: ${!CONF_PATHS[*]})
+  --dry-run      show what would happen, change nothing
+  --no-push      (push mode)   commit locally but don't push
+  --no-commit    (push mode)   sync files only, skip git entirely
+  --delete       (deploy mode) also remove system files not present in the repo
+  -h, --help     show this help
+EOF
+}
+
+# ---------------------------------------------------------------------------
+# Args
+# ---------------------------------------------------------------------------
+mode="push"
+host="$(hostname)"
+only=""
+dry_run=0
+do_push=1
+do_commit=1
+do_delete=0
+
+if [[ $# -gt 0 && "$1" != --* && "$1" != -h ]]; then
+  mode="$1"; shift
+fi
+
+for arg in "$@"; do
+  case "$arg" in
+    --host=*)   host="${arg#--host=}" ;;
+    --only=*)   only="${arg#--only=}" ;;
+    --dry-run)  dry_run=1 ;;
+    --no-push)  do_push=0 ;;
+    --no-commit) do_commit=0; do_push=0 ;;
+    --delete)   do_delete=1 ;;
+    -h|--help)  usage; exit 0 ;;
+    *) err "unknown option: $arg"; usage; exit 1 ;;
+  esac
+done
+
+case "$mode" in push|deploy|list) ;; *) err "unknown mode: $mode"; usage; exit 1 ;; esac
+
+configs=("${!CONF_PATHS[@]}")
+if [[ -n "$only" ]]; then
+  IFS=',' read -ra configs <<< "$only"
+  for c in "${configs[@]}"; do
+    [[ -v "CONF_PATHS[$c]" ]] || { err "unknown config: $c (known: ${!CONF_PATHS[*]})"; exit 1; }
+  done
+fi
+
+# ---------------------------------------------------------------------------
+# list mode
+# ---------------------------------------------------------------------------
+if [[ "$mode" == "list" ]]; then
+  info "host directories in this repo:"
+  for d in */; do
+    d="${d%/}"
+    [[ "$d" == .* ]] && continue
+    if [[ "$d" == "$host" ]]; then
+      printf '  %b%b* %s%b\n' "$c_bold" "$c_green" "$d" "$c_reset"
+    else
+      printf '    %s\n' "$d"
+    fi
+  done
+  exit 0
+fi
+
+host_dir="$SCRIPT_DIR/$host"
+
+if [[ "$mode" == "deploy" && ! -d "$host_dir" ]]; then
+  err "no '$host' directory in this repo. Available: $(ls -d */ 2>/dev/null | tr -d / | paste -sd, -)"
+  exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# Sync engine: prefers rsync (incremental, supports --delete), falls back
+# to cp -a for directories (no delete propagation) if rsync isn't installed.
+# rsync is invoked with trailing slashes on both sides so directory *contents*
+# are synced in place -- this is what the old `cp -r` version got wrong, and
+# why the repo used to grow host/config/config/... nesting on every run.
+# ---------------------------------------------------------------------------
+have_rsync=0
+command -v rsync >/dev/null 2>&1 && have_rsync=1
+warned_no_rsync=0
+
+sync_path() {
+  local src="$1" dst="$2"
+
+  if [[ -d "$src" ]]; then
+    if [[ "$have_rsync" == 1 ]]; then
+      local args=(-a)
+      [[ "$do_delete" == 1 ]] && args+=(--delete)
+      if [[ "$dry_run" == 1 ]]; then
+        rsync "${args[@]}" -n -i "$src/" "$dst/" | sed 's/^/      /'
+      else
+        mkdir -p "$dst"
+        rsync "${args[@]}" "$src/" "$dst/"
+      fi
+    else
+      if [[ "$warned_no_rsync" == 0 ]]; then
+        skip "rsync not found, falling back to cp (no stale-file cleanup; install rsync for best results)"
+        warned_no_rsync=1
+      fi
+      [[ "$dry_run" == 1 ]] && { echo "      cp -a $src/. $dst/"; return; }
+      mkdir -p "$dst"
+      cp -a "$src/." "$dst/"
+    fi
+  elif [[ -f "$src" ]]; then
+    [[ "$dry_run" == 1 ]] && { echo "      cp $src -> $dst"; return; }
+    mkdir -p "$(dirname "$dst")"
+    cp -a "$src" "$dst"
   else
-    echo "Color '$color' not recognized. Available colors are: ${!colors[@]}"
+    return 1
   fi
 }
 
+# ---------------------------------------------------------------------------
+# push: system -> repo
+# ---------------------------------------------------------------------------
+run_push() {
+  info "push: syncing $host's live configs into $host_dir/ $([[ $dry_run == 1 ]] && echo '(dry run)')"
+  mkdir -p "$host_dir"
 
+  for name in "${configs[@]}"; do
+    local src="${CONF_PATHS[$name]}"
+    local dst="$host_dir/$name"
+    if sync_path "$src" "$dst"; then
+      ok "$name"
+    else
+      skip "$name (not found at $src)"
+    fi
+  done
 
+  [[ "$do_commit" == 0 ]] && { info "skipping git (--no-commit)"; return; }
 
+  if [[ "$dry_run" == 1 ]]; then
+    info "dry run: skipping git add/commit/push"
+    return
+  fi
 
+  git add -- "$host/"
 
+  if git diff --cached --quiet -- "$host/"; then
+    info "no changes for $host, nothing to commit"
+    return
+  fi
 
- 
+  local changed
+  changed=$(git diff --cached --name-only -- "$host/" \
+    | sed "s#^$host/##" | cut -d/ -f1 | sort -u | paste -sd, -)
+  local msg="update $host: $changed"
 
+  git commit -m "$msg"
+  ok "committed: $msg"
 
-
-
-
-
-
-
-
-
-echo "--------------------------"
-color_text "Hello " "White" 
-color_text "$USER" "Red" 
-echo " !"
-echo $(date) 
-echo "--------------------------"
-
-echo ""
-echo ""
-
-
-host=$(hostname)
-directory="$1"
-
-declare -A confPaths=(
-	["hypr"]=~/.config/hypr ["kitty"]=~/.config/kitty ["nvim"]=~/.config/nvim ["waybar"]=~/.config/waybar [".bashrc"]=~/.bashrc [".zshrc"]=~/.zshrc
-)
-
-function transferConfigs() {
-	
-	if test -d $directory; then
-
-		for config in "${!confPaths[@]}"; do
-      
-      if [ -f ${confPaths[$config]} ]; then
-  			color_text "$config" "UGreen"
-	 		echo ""
-		 	cp -r "${confPaths[$config]}" "$directory/$config"
-      elif [ -d ${confPaths[$config]} ]; then
-        color_text "$config" "BGreen"
-        echo ""
-        cp -r "${confPaths[$config]}" "$directory/$config"
-      else
-        color_text "$config" "Red"
-        echo ""
-      fi
-		done
-	fi 
+  if [[ "$do_push" == 1 ]]; then
+    git push origin "$(git rev-parse --abbrev-ref HEAD)"
+    ok "pushed"
+  else
+    info "skipping push (--no-push)"
+  fi
 }
 
-function promptDirectory() {
+# ---------------------------------------------------------------------------
+# deploy: repo -> system
+# ---------------------------------------------------------------------------
+run_deploy() {
+  info "deploy: writing $host_dir/ onto this system $([[ $dry_run == 1 ]] && echo '(dry run)')"
+  [[ "$do_delete" == 1 ]] && info "  (--delete: removing system files absent from the repo)"
 
-	for dir in $(ls -d */ --color=auto); do 
-		dir_name="${dir%/}"
-
-		if [[ "$dir_name" == "$host" ]]; then
-			color_text "$dir_name" "UBBlue"
-		else 
-			color_text "$dir_name" "BBlue"
-		fi 
-
-		echo -n " "
-	done
-
-	echo -en "\nWhich directory to update?\n-> "
-	read directory
-
-	if [ "$directory" = "" ] || [ "$directory" = "\n" ]; then
-		directory=$host
-	fi
-
-	echo -n "Dir is: "
-	color_text "$directory" "Blue"
-	echo ""
-
-	if test -d $directory; then
-		echo "Exists... Transferring data..."
-		echo ""
-
-	else 
-		echo "Directory does not exist..."
-		exit
-	fi
-
+  for name in "${configs[@]}"; do
+    local src="$host_dir/$name"
+    local dst="${CONF_PATHS[$name]}"
+    if sync_path "$src" "$dst"; then
+      ok "$name"
+    else
+      skip "$name (not tracked for $host)"
+    fi
+  done
 }
 
-if [[ -z "$1" ]]; then
-	promptDirectory
-fi
-
-
-transferConfigs
-
-
-
-function gitAddCommitPush() {
-
-  	local answer=""
-  	echo -e "\n"
-  	color_text "Want to commit and push on git repo?[y/N] " "BCyan"
-
-  	read answer
-
-	if [[ $answer =~ "y" ]]; then
-		
-
-    	git add "$directory"/
-		git add "./update.sh"
-   	git commit -m "updated configs"
-    	git push origin master
-    	echo -e "\n"
-  	else
-    	color_text "OK. Finished." "Red"
-	 	echo ""
-  	fi
-
-}
-
-
-gitAddCommitPush
-
-
-
-
-
+case "$mode" in
+  push)   run_push ;;
+  deploy) run_deploy ;;
+esac
