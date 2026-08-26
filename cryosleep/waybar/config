@@ -38,8 +38,8 @@
 "custom/weather": {
   "format": "{}",
   "return-type": "json",
-  "exec": "~/.config/waybar/scripts/weather.sh",
   "interval": "once",
+  "exec": "bash ~/.config/waybar/scripts/weather.sh",
   "on-click": "firefox https://wttr.in/Athens"
 },
 
