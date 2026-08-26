@@ -2,7 +2,7 @@
   "layer": "top", "position": "top",
   "modules-left": ["custom/logo", "clock", "hyprland/language", "custom/weather", "disk", "memory", "cpu", "temperature", "custom/powerDraw", "hyprland/window" ],
   "modules-center": [  "hyprland/workspaces"],
-  "modules-right": ["tray",  "custom/clipboard", "backlight", "idle_inhibitor", "custom/colorpicker", "bluetooth", "network",  "battery" ],
+  "modules-right": ["tray", "pulseaudio", "pulseaudio#mic", "jack",  "custom/clipboard", "backlight", "idle_inhibitor", "custom/colorpicker", "bluetooth", "network",  "battery" ],
   "reload_style_on_change":true,
 
   "custom/logo": {
@@ -40,28 +40,27 @@
   "return-type": "json",
   "exec": "~/.config/waybar/scripts/weather.sh",
   "interval": "once",
-  "on-click": "firefox https://wttr.in/Chania"
+  "on-click": "firefox https://wttr.in/Athens"
 },
 
-"custom/clipboard":{
-  "format":"\uf0ea",
-  "on-click": "cliphist list | rofi -dmenu | cliphist decode | wl-copy",
-  "interval":86400
-},
 
+"custom/clipboard": {
+  "format": "",
+  "on-click": "clipman pick -t rofi"
+},
 
 "clock": {
       "format": "{:%I:%M:%S %p}",
       "interval":1,
-      "tooltip-format": "\n<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>",
+      "tooltip-format": "\n<big>{:%d %B}</big>\n<tt><small>{calendar}</small></tt>",
       "calendar-weeks-pos": "right",
       "today-format": "<span color='#7645AD'><b><u>{}</u></b></span>",
       "format-calendar": "<span color='#aeaeae'><b>{}</b></span>",
       "format-calendar-weeks": "<span color='#aeaeae'><b>W{:%V}</b></span>",
       "format-calendar-weekdays": "<span color='#aeaeae'><b>{}</b></span>"
-      },
+},
 
-  "bluetooth": {
+"bluetooth": {
   "format-on": "",
   "format-off": "",
   "format-disabled": "󰂲",
@@ -71,7 +70,7 @@
   "tooltip-format-connected": "{controller_alias}\t{controller_address}\n\n{num_connections} connected\n\n{device_enumerate}",
   "tooltip-format-enumerate-connected": "{device_alias}\t{device_address}",
   "tooltip-format-enumerate-connected-battery": "{device_alias}\t{device_address}\t{device_battery_percentage}%",
-  "on-click": "rofi-bluetooth",
+  "on-click": "blueman-manager",
  }, 
 
 "network": {
@@ -81,7 +80,7 @@
       "tooltip-format": "{ipaddr}",
       "tooltip-format-wifi": "{essid} ({signalStrength}%)  | {ipaddr}",
       "tooltip-format-ethernet": "{ifname} 🖧 | {ipaddr}",
-      "on-click": "networkmanager_dmenu"
+      "on-click": "kitty nmtui"
     },
 
 "battery": {
@@ -166,25 +165,31 @@
   "on-click": "kitty btop",
  },
 
+
+
 "pulseaudio": {
-  "format": "{volume}% {icon}",
-  "format-bluetooth":"󰂰 ",
-  "format-muted": "<span font='12'></span>",
+  "format": "{icon} {volume}%",
+  "format-muted": "󰝟",
   "format-icons": {
-    "headphones": " ",
-    "bluetooth": "󰥰 ",
-    "handsfree": " ",
-    "headset": "󱡬",
-    "phone": " ",
-    "portable": " ",
-    "car": " ",
-    "default": ["🕨","🕩","🕪"]
+    "headphones": "󰋋",
+    "bluetooth": "󰂯",
+    "default": ["󰕿", "󰖀", "󰕾"]
   },
-  "justify": "center",
-  "on-click": "amixer sset Master toggle",
-  "on-click-right": "pavucontrol",
-  "tooltip-format": "{icon}  {volume}%"
+  "on-click": "pavucontrol",
+  "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+  "on-scroll-up": "wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+",
+  "on-scroll-down": "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-",
+  "tooltip": true
 },
+
+"pulseaudio#mic": {
+  "format": "󰍬 {volume}%",
+  "format-muted": "󰍭 muted",
+  "on-click": "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle",
+  "on-scroll-up": "wpctl set-volume @DEFAULT_AUDIO_SOURCE@ 5%+",
+  "on-scroll-down": "wpctl set-volume @DEFAULT_AUDIO_SOURCE@ 5%-"
+},
+
 
 "jack": {
     "format": "{} 󱎔",
