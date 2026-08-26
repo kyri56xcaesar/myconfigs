@@ -1,10 +1,16 @@
 # If you come from bash you might have to change your $PATH.
-# export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH
+export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$HOME/go/bin/:$PATH
 
 
 export BROWSER=/usr/bin/firefox
 # Path to your Oh My Zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
+
+
+
+# android tools
+export ANDROID_HOME=$HOME/Android/Sdk
+export PATH=$PATH:$ANDROID_HOME/platform-tools
 
 # Set name of the theme to load --- if set to "random", it will
 # load a random theme each time Oh My Zsh is loaded, in which case,
@@ -121,4 +127,21 @@ alias lah='ls -lah'
 alias btc='brightnessctl'
 alias ls='ls --color=auto'
 alias grep='grep --color=auto'
-#alias cp='cp --progress'
+alias cp='cp'
+
+
+# Guard protection for rm
+rm() {
+    # Check if any argument matches the protected directory
+    for arg in "$@"; do
+        # Resolve absolute, relative, and trailing slash paths
+        if [[ "$(realpath -m "$arg" 2>/dev/null)" == "$HOME/Documents" ]]; then
+            echo "🚫 Error: Deleting ~/Documents is strictly prohibited!"
+            return 1
+        fi
+    done
+    echo "Deleting " "$@"
+    # Run the real rm command if safe
+    command rm "$@"
+}
+
